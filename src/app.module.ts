@@ -9,7 +9,7 @@ import { Permission } from './user/entities/permission.entity';
 import { RedisModule } from './redis/redis.module';
 import { EmailModule } from './email/email.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { env } from 'process';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -40,6 +40,14 @@ import { env } from 'process';
           }
         }
       },
+      inject: [ConfigService],
+    }),
+    JwtModule.registerAsync({
+      global: true,
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('jwt_secret'),
+        signOptions: { expiresIn:'30m'},
+      }),
       inject: [ConfigService],
     }),
     UserModule,
