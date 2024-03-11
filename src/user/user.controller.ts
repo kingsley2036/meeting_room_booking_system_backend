@@ -10,6 +10,7 @@ import { RequireLogin, UserInfo } from 'src/custom.decorator';
 import { UserDetailVo } from './vo/user-info.vo';
 import { UpdateUserPasswordDto } from './vo/update-user-password.dto';
 import { UpdateUserDto } from './dto/udpate-user.dto';
+import { UnLoginException } from 'src/unlogin.filter';
 
 @Controller('user')
 export class UserController {
@@ -138,7 +139,7 @@ async updateCaptcha(@Query('address') address: string) {
         refresh_token
       }
     } catch (error) {
-      throw new UnauthorizedException('token 已失效，请重新登录');
+      throw new UnLoginException('token 已失效，请重新登录');
     }
 
   }
@@ -170,7 +171,7 @@ async adminRefresh(@Query('refreshToken') refreshToken: string) {
         refresh_token
       }
     } catch(e) {
-      throw new UnauthorizedException('token 已失效，请重新登录');
+      throw new UnLoginException('token 已失效，请重新登录');
     }
   }
   @Get('info')
