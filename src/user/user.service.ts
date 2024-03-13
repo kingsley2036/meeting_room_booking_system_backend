@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { RedisService } from 'src/redis/redis.service';
@@ -172,21 +172,25 @@ export class UserService {
     };
   }
   async findUserDetailById(userId: number) {
-    console.log('findUserDetailById',userId);
-    
-  return  await this.userRepository.findOne({
+    console.log('findUserDetailById', userId);
+
+    return await this.userRepository.findOne({
       where: { id: userId },
-    })
+    });
   }
   async updatePassword(userId: number, passwordDto: UpdateUserPasswordDto) {
-    const captcha = await this.redisService.get(`update_password_captcha_${passwordDto.email}`);
+    const captcha = await this.redisService.get(
+      `update_password_captcha_${passwordDto.email}`,
+    );
     if (!captcha) {
       throw new HttpException('验证码已过期', HttpStatus.BAD_REQUEST);
     }
     if (captcha !== passwordDto.captcha) {
       throw new HttpException('验证码不正确', HttpStatus.BAD_REQUEST);
     }
-    const foundUser = await this.userRepository.findOne({ where: { id: userId } });
+    const foundUser = await this.userRepository.findOne({
+      where: { id: userId },
+    });
     if (!foundUser) {
       throw new HttpException('用户不存在', HttpStatus.BAD_REQUEST);
     }
@@ -197,36 +201,77 @@ export class UserService {
     try {
       await this.userRepository.save(foundUser);
       return '密码修改成功';
-    } catch(e) {
+    } catch (e) {
       this.logger.error(e, UserService);
       return '密码修改失败';
     }
   }
- async update(userId: number, updateUserDto: UpdateUserDto) {
-   const captcha = await this.redisService.get(`update_user_captcha_${updateUserDto.email}`);
-   if (!captcha) {
-     throw new HttpException('验证码已过期', HttpStatus.BAD_REQUEST);
-   }
-   if (captcha !== updateUserDto.captcha) {
-     throw new HttpException('验证码不正确', HttpStatus.BAD_REQUEST);
-   }
-   const foundUser = await this.userRepository.findOne({ where: { id: userId } });
+  async update(userId: number, updateUserDto: UpdateUserDto) {
+    const captcha = await this.redisService.get(
+      `update_user_captcha_${updateUserDto.email}`,
+    );
+    if (!captcha) {
+      throw new HttpException('验证码已过期', HttpStatus.BAD_REQUEST);
+    }
+    if (captcha !== updateUserDto.captcha) {
+      throw new HttpException('验证码不正确', HttpStatus.BAD_REQUEST);
+    }
+    const foundUser = await this.userRepository.findOne({
+      where: { id: userId },
+    });
 
-   if(updateUserDto.nickName) {
+    if (updateUserDto.nickName) {
       foundUser.nickName = updateUserDto.nickName;
-   }
-   if(updateUserDto.headPic) {
-     foundUser.headPic = updateUserDto.headPic;
-   }
-   
-   try {
-     await this.userRepository.save(foundUser);
-     return '修改成功';
-   } catch(e) {
-     this.logger.error(e, UserService);
-     return '修改失败';
-   }
-   
+    }
+    if (updateUserDto.headPic) {
+      foundUser.headPic = updateUserDto.headPic;
+    }
 
+    try {
+      await this.userRepository.save(foundUser);
+      return '修改成功';
+    } catch (e) {
+      this.logger.error(e, UserService);
+      return '修改失败';
+    }
+  }
+  async freezeUserById(userId: number) {
+    const foundUser = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (!foundUser) {
+      throw new HttpException('用户不存在', HttpStatus.BAD_REQUEST);
+    }
+    foundUser.isFrozen = true;
+    try {
+      await this.userRepository.save(foundUser);
+      return '操作成功';
+    } catch (e) {
+      this.logger.error(e, UserService);
+      return '操作失败';
+    }
+  }
+  async findUsersByPage(pageNo: number, pageSize: number, username, nickName, email) {
+    const condition: Record<string, any> = {};
+    if (username) {
+      condition.username = Like(`%${username}%`);
+    }
+    if (nickName) {
+      condition.nickName = Like(`%${nickName}%`);
+    }
+    if (email) {
+      condition.email = Like(`%${email}%`);
+    }
+
+    const [users, totalCount] = await this.userRepository.findAndCount({
+      select: ['id', 'username', 'nickName', 'email', 'phoneNumber', 'isFrozen', 'headPic', 'createTime'],
+      skip: (pageNo - 1) * pageSize,
+      take: pageSize,
+      where: condition,
+    });
+    return {
+      users,
+      totalCount,
+    };
   }
 }
