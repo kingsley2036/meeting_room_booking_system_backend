@@ -24,7 +24,8 @@ import { UpdateUserPasswordDto } from './vo/update-user-password.dto';
 import { UpdateUserDto } from './dto/udpate-user.dto';
 import { UnLoginException } from 'src/unlogin.filter';
 import { query } from 'express';
-
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('用户管理模块')
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
