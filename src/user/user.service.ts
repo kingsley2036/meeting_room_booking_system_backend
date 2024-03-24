@@ -178,7 +178,7 @@ export class UserService {
       where: { id: userId },
     });
   }
-  async updatePassword(userId: number, passwordDto: UpdateUserPasswordDto) {
+  async updatePassword( passwordDto: UpdateUserPasswordDto) {
     const captcha = await this.redisService.get(
       `update_password_captcha_${passwordDto.email}`,
     );
@@ -189,10 +189,14 @@ export class UserService {
       throw new HttpException('验证码不正确', HttpStatus.BAD_REQUEST);
     }
     const foundUser = await this.userRepository.findOne({
-      where: { id: userId },
+      where: { username: passwordDto.username },
     });
+    
     if (!foundUser) {
       throw new HttpException('用户不存在', HttpStatus.BAD_REQUEST);
+    }
+    if(foundUser.email !== passwordDto.email) {
+      throw new HttpException('邮箱不正确', HttpStatus.BAD_REQUEST);
     }
     console.log('passwordDto :>> ', passwordDto);
     console.log('foundUser :>> ', foundUser);
@@ -251,7 +255,13 @@ export class UserService {
       return '操作失败';
     }
   }
-  async findUsersByPage(pageNo: number, pageSize: number, username, nickName, email) {
+  async findUsersByPage(
+    pageNo: number,
+    pageSize: number,
+    username,
+    nickName,
+    email,
+  ) {
     const condition: Record<string, any> = {};
     if (username) {
       condition.username = Like(`%${username}%`);
@@ -264,7 +274,16 @@ export class UserService {
     }
 
     const [users, totalCount] = await this.userRepository.findAndCount({
-      select: ['id', 'username', 'nickName', 'email', 'phoneNumber', 'isFrozen', 'headPic', 'createTime'],
+      select: [
+        'id',
+        'username',
+        'nickName',
+        'email',
+        'phoneNumber',
+        'isFrozen',
+        'headPic',
+        'createTime',
+      ],
       skip: (pageNo - 1) * pageSize,
       take: pageSize,
       where: condition,

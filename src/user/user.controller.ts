@@ -234,13 +234,10 @@ export class UserController {
     return vo;
   }
   @Post(['update_password', 'admin/update_password'])
-  @RequireLogin()
   async updatePassword(
-    @UserInfo('userId') userId: number,
     @Body() passwordDto: UpdateUserPasswordDto,
   ) {
-    console.log('userId', userId);
-    return await this.userService.updatePassword(userId, passwordDto);
+    return await this.userService.updatePassword( passwordDto);
   }
   @Post(['update', 'admin/update'])
   @RequireLogin()
