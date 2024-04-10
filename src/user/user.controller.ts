@@ -10,6 +10,8 @@ import {
   Post,
   Query,
   UnauthorizedException,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { RegisterUserDto } from './dto/register-user.dto';
@@ -25,6 +27,8 @@ import { UpdateUserDto } from './dto/udpate-user.dto';
 import { UnLoginException } from 'src/unlogin.filter';
 import { query } from 'express';
 import { ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { storage } from 'src/my-file-storage';
 @ApiTags('用户管理模块')
 @Controller('user')
 export class UserController {
@@ -65,10 +69,10 @@ export class UserController {
     });
     return '发送成功';
   }
+  @RequireLogin()
   @Get('update/captcha')
-  async updateCaptcha(@Query('address') address: string) {
+  async updateCaptcha(@UserInfo('email') address: string) {
     const code = Math.random().toString().slice(2, 8);
-
     await this.redisService.set(
       `update_user_captcha_${address}`,
       code,
@@ -234,14 +238,11 @@ export class UserController {
     vo.phoneNumber = user.phoneNumber;
     vo.isFrozen = user.isFrozen;
     vo.createTime = user.createTime;
-
     return vo;
   }
   @Post(['update_password', 'admin/update_password'])
-  async updatePassword(
-    @Body() passwordDto: UpdateUserPasswordDto,
-  ) {
-    return await this.userService.updatePassword( passwordDto);
+  async updatePassword(@Body() passwordDto: UpdateUserPasswordDto) {
+    return await this.userService.updatePassword(passwordDto);
   }
   @Post(['update', 'admin/update'])
   @RequireLogin()
@@ -282,8 +283,35 @@ export class UserController {
     pageSize: number,
     @Query('username') username: string,
     @Query('nickName') nickName: string,
-    @Query('email') email: string
+    @Query('email') email: string,
   ) {
-    return await this.userService.findUsersByPage(pageNo, pageSize,username,nickName,email);
+    return await this.userService.findUsersByPage(
+      pageNo,
+      pageSize,
+      username,
+      nickName,
+      email,
+    );
+  }
+
+  @Post('upload')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      dest: 'uploads',
+      storage: storage,
+      limits: {
+        fileSize: 1024 * 1024 * 3,
+      },
+      fileFilter(req, file, callback) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+          return callback(new BadRequestException('只能上传 jpg|jpeg|png'), false);
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  uploadFile(@UploadedFile() file: Express.Multer.File) {
+    console.log('file', file);
+    return file.path;
   }
 }
