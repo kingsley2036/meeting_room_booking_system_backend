@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   DefaultValuePipe,
+  Put,
 } from '@nestjs/common';
 import { MeetingRoomService } from './meeting-room.service';
 import { CreateMeetingRoomDto } from './dto/create-meeting-room.dto';
@@ -50,7 +51,7 @@ export class MeetingRoomController {
     return this.meetingRoomService.findById(+id);
   }
 
-  @Patch(':id')
+  @Put('update')
   update(@Body() updateMeetingRoomDto: UpdateMeetingRoomDto) {
     return this.meetingRoomService.update(updateMeetingRoomDto);
   }
