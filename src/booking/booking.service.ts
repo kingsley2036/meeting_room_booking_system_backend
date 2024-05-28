@@ -99,10 +99,7 @@ export class BookingService {
         bookingTimeRangeEnd = bookingTimeRangeStart + 60 * 60 * 1000;
       }
 
-      condition['startTime'] = Between(
-        new Date(bookingTimeRangeStart),
-        new Date(bookingTimeRangeEnd),
-      );
+      condition.startTime = Between(new Date(+bookingTimeRangeStart), new Date(+bookingTimeRangeEnd))
     }
     const [bookings, totalCount] = await this.entityManager.findAndCount(
       Booking,
