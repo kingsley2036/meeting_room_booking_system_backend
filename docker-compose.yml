@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   fe-app:
-    image: fe-container:first
+    image: registry.cn-hangzhou.aliyuncs.com/jitao2036/wang:aaa
     ports:
       - 80:80
     depends_on:
